@@ -17,6 +17,8 @@ std::string frame_id, child_frame_id;
 double rot_cov;
 bool append_zone = false;
 
+double northing_origin = 0, easting_origin = 0, altitude_origin = 0;
+
 void callback(const sensor_msgs::NavSatFixConstPtr& fix) {
   if (fix->status.status == sensor_msgs::NavSatStatus::STATUS_NO_FIX) {
     ROS_DEBUG_THROTTLE(60,"No fix.");
@@ -31,6 +33,9 @@ void callback(const sensor_msgs::NavSatFixConstPtr& fix) {
   std::string zone;
 
   LLtoUTM(fix->latitude, fix->longitude, northing, easting, zone);
+
+  northing -= northing_origin;
+  easting -= easting_origin;
 
   if (odom_pub) {
     nav_msgs::Odometry odom;
@@ -54,13 +59,13 @@ void callback(const sensor_msgs::NavSatFixConstPtr& fix) {
 
     odom.pose.pose.position.x = easting;
     odom.pose.pose.position.y = northing;
-    odom.pose.pose.position.z = fix->altitude;
-    
+    odom.pose.pose.position.z = fix->altitude - altitude_origin;
+
     odom.pose.pose.orientation.x = 0;
     odom.pose.pose.orientation.y = 0;
     odom.pose.pose.orientation.z = 0;
     odom.pose.pose.orientation.w = 1;
-    
+
     // Use ENU covariance to build XYZRPY covariance
     boost::array<double, 36> covariance = {{
       fix->position_covariance[0],
@@ -90,11 +95,18 @@ int main (int argc, char **argv) {
   ros::init(argc, argv, "utm_odometry_node");
   ros::NodeHandle node;
   ros::NodeHandle priv_node("~");
+  double latitude_origin, longitude_origin;
 
+  priv_node.param<double>("latitude_origin", latitude_origin, 0);
+  priv_node.param<double>("longitude_origin", longitude_origin, 0);
+  priv_node.param<double>("altitude_origin", altitude_origin, 0);
   priv_node.param<std::string>("frame_id", frame_id, "");
   priv_node.param<std::string>("child_frame_id", child_frame_id, "");
   priv_node.param<double>("rot_covariance", rot_cov, 99999.0);
   priv_node.param<bool>("append_zone", append_zone, false);
+
+  std::string zone;
+  LLtoUTM(latitude_origin, longitude_origin, northing_origin, easting_origin, zone);
 
   odom_pub = node.advertise<nav_msgs::Odometry>("odom", 10);
 
@@ -102,4 +114,3 @@ int main (int argc, char **argv) {
 
   ros::spin();
 }
-

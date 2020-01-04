@@ -1,5 +1,6 @@
 gps_umd [![Build Status](https://travis-ci.org/swri-robotics/gps_umd.svg?branch=master)](https://travis-ci.org/swri-robotics/gps_umd)
 =======
+Add parameters to set the zero of the odom output.
 
 This package is a space to stage messages and common GPS-processing routines.  The previous maintainer has not released these packages since ROS Indigo; this fork was created in order to fix them up and release them for ROS Jade and Kinetic.
 
